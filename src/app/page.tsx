@@ -193,15 +193,22 @@ export default function LoginPage() {
               </button>
 
               <button
-                onClick={() => quickLogin("admin", "/admin/tickets")}
+                type="button"
+                onClick={() => {
+                  setEmail("admin@bookleaf.in");
+                  setPassword("admin123");
+                }}
                 className="w-full p-3 bg-indigo-900 hover:bg-indigo-800 text-white rounded-xl text-left flex items-start gap-3 transition shadow-2xs group cursor-pointer"
               >
                 <div className="p-2 bg-indigo-800/80 rounded-lg shrink-0">
                   <Shield className="w-4 h-4 text-amber-300" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">Operations Team (Admin)</div>
-                  <div className="text-[11px] text-indigo-200">Ticket Queue, AI overrides, internal notes & drafts</div>
+                  <div className="text-xs font-bold text-white flex items-center justify-between">
+                    <span>Operations Team (Admin)</span>
+                    <span className="text-[10px] bg-indigo-800 px-1.5 py-0.5 rounded font-mono">Fill Form</span>
+                  </div>
+                  <div className="text-[11px] text-indigo-200">Pre-fills admin@bookleaf.in / admin123 for credential sign-in</div>
                 </div>
               </button>
             </div>

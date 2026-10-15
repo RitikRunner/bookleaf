@@ -3,10 +3,6 @@ import { cookies } from "next/headers";
 import { prisma } from "./db";
 import { Role } from "@prisma/client";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "bookleaf-super-secret-production-key-2026"
-);
-
 export const COOKIE_NAME = "bookleaf_session";
 
 export interface SessionPayload {
@@ -16,17 +12,34 @@ export interface SessionPayload {
   name: string;
 }
 
+/**
+ * Retrieves the cryptographic JWT secret.
+ * Enforces strict environment configuration with zero fallback in production.
+ */
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim() === "") {
+    throw new Error(
+      "FATAL SECURITY CONFIGURATION: JWT_SECRET environment variable is missing. " +
+        "The application strictly requires a configured secret to prevent predictable session tokens."
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
+  const secret = getJwtSecret();
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+    .sign(secret);
 }
 
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const secret = getJwtSecret();
+    const { payload } = await jwtVerify(token, secret);
     return payload as unknown as SessionPayload;
   } catch (error) {
     return null;

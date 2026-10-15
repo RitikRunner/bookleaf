@@ -1,26 +1,42 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createSessionToken, COOKIE_NAME } from "@/lib/auth";
+import { Role } from "@prisma/client";
+
+// List of allowed non-privileged author test personas
+const ALLOWED_DEMO_AUTHORS: Record<string, string> = {
+  priya: "priya.sharma@email.com",
+  kavita: "kavita.deshmukh@email.com",
+  sneha: "sneha.kulkarni@email.com",
+  rohit: "rohit.kapoor@email.com"
+};
 
 export async function POST(req: Request) {
   try {
     const { persona } = await req.json();
 
-    let targetEmail = "";
-    if (persona === "priya") {
-      targetEmail = "priya.sharma@email.com";
-    } else if (persona === "kavita") {
-      targetEmail = "kavita.deshmukh@email.com";
-    } else if (persona === "sneha") {
-      targetEmail = "sneha.kulkarni@email.com";
-    } else if (persona === "rohit") {
-      targetEmail = "rohit.kapoor@email.com";
-    } else if (persona === "admin") {
-      targetEmail = "admin@bookleaf.in";
-    } else {
-      return NextResponse.json({ error: "Unknown persona" }, { status: 400 });
+    // 1. Strict Security Guard: Never allow administrative impersonation
+    if (persona === "admin") {
+      return NextResponse.json(
+        {
+          error:
+            "Security Policy Violation: Administrative access cannot be granted via impersonation endpoints. " +
+            "Operations staff must authenticate with valid credentials via /api/auth/login."
+        },
+        { status: 403 }
+      );
     }
 
+    // 2. Validate against explicit author allowlist
+    const targetEmail = ALLOWED_DEMO_AUTHORS[persona];
+    if (!targetEmail) {
+      return NextResponse.json(
+        { error: "Invalid persona identifier. Only pre-configured author demo personas are supported." },
+        { status: 400 }
+      );
+    }
+
+    // 3. Retrieve user and verify role is strictly AUTHOR
     const user = await prisma.user.findUnique({
       where: { email: targetEmail }
     });
@@ -29,6 +45,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Persona user not found in database" }, { status: 404 });
     }
 
+    if (user.role !== Role.AUTHOR) {
+      return NextResponse.json(
+        { error: "Security Restriction: Only unprivileged Author profiles can be switched in demo mode." },
+        { status: 403 }
+      );
+    }
+
+    // 4. Create session token for the verified author
     const token = await createSessionToken({
       userId: user.id,
       email: user.email,
