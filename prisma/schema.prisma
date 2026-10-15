@@ -1,0 +1,133 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  AUTHOR
+  ADMIN
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TicketCategory {
+  ROYALTY_PAYMENTS
+  ISBN_METADATA
+  PRINTING_QUALITY
+  DISTRIBUTION_AVAILABILITY
+  BOOK_STATUS_PRODUCTION
+  GENERAL_INQUIRY
+}
+
+model User {
+  id           String        @id @default(cuid())
+  authorCode   String?       @unique // e.g. "AUTH001"
+  email        String        @unique
+  passwordHash String
+  name         String
+  phone        String?
+  city         String?
+  role         Role          @default(AUTHOR)
+  joinedDate   DateTime?
+  
+  books        Book[]
+  tickets      Ticket[]      @relation("AuthorTickets")
+  assigned     Ticket[]      @relation("AssignedAdminTickets")
+  messages     TicketMessage[]
+  notes        InternalNote[]
+  createdAt    DateTime      @default(now())
+}
+
+model Book {
+  id                   String        @id @default(cuid())
+  bookCode             String        @unique // e.g. "BK001"
+  authorId             String
+  author               User          @relation(fields: [authorId], references: [id])
+  title                String
+  isbn                 String?       @unique
+  genre                String
+  publicationDate      DateTime?
+  status               String        // "Published & Live" or "In Production - Cover Design"
+  mrp                  Float?
+  authorRoyaltyPerCopy Float?
+  totalCopiesSold      Int           @default(0)
+  totalRoyaltyEarned   Float         @default(0)
+  royaltyPaid          Float         @default(0)
+  royaltyPending       Float         @default(0)
+  lastRoyaltyPayoutDate DateTime?
+  printPartner         String?
+  availableOn          String[]
+  tickets              Ticket[]
+  createdAt            DateTime      @default(now())
+}
+
+model Ticket {
+  id                   String          @id @default(cuid())
+  ticketNumber         Int             @default(autoincrement())
+  authorId             String
+  author               User            @relation("AuthorTickets", fields: [authorId], references: [id])
+  bookId               String?
+  book                 Book?           @relation(fields: [bookId], references: [id])
+  
+  subject              String
+  description          String          @db.Text
+  attachmentFileName   String?
+  
+  status               TicketStatus    @default(OPEN)
+  category             TicketCategory
+  priority             TicketPriority  @default(MEDIUM)
+  
+  // AI Copilot Audit & Overrides
+  aiSuggestedCategory  TicketCategory?
+  aiSuggestedPriority  TicketPriority?
+  aiConfidenceScore    Float?
+  aiReasoning          String?         @db.Text
+  aiDraftResponse      String?         @db.Text
+  isAiOverridden       Boolean         @default(false)
+  aiStatus             String          @default("SUCCESS") // "SUCCESS" | "FALLBACK"
+  
+  assignedAdminId      String?
+  assignedAdmin        User?           @relation("AssignedAdminTickets", fields: [assignedAdminId], references: [id])
+  
+  messages             TicketMessage[]
+  internalNotes        InternalNote[]
+  
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model InternalNote {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  note      String   @db.Text
+  createdAt DateTime @default(now())
+}
