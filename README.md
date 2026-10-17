@@ -1,6 +1,6 @@
 # BookLeaf Publishing: Author Support & Communication Portal
 
-https://vercel.com/ritikrunners-projects/bookleaf/3427CLSo8YdosPV1GM6T8FUgWPuF
+https://bookleaf-hzcovuamy-ritikrunners-projects.vercel.app/
 
 An intelligent, full-stack author communication platform designed for **BookLeaf Publishing** to handle support queries at scale. Built with Next.js 14/15, TypeScript, Prisma ORM, PostgreSQL, and AI-assisted response generation.
 
