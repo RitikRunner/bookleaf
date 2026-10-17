@@ -53,7 +53,8 @@ function NewTicketForm() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create ticket");
+        const errorMsg = data.error || (data.details && data.details[0]?.message) || "Failed to create ticket";
+        throw new Error(errorMsg);
       }
 
       // Redirect immediately to the new ticket view
@@ -146,6 +147,12 @@ function NewTicketForm() {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition resize-y"
             />
+            <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1">
+              <span>Please describe your concern so our AI can accurately classify your ticket.</span>
+              <span className={description.length < 5 ? "text-amber-600 font-medium" : "text-emerald-600 font-medium"}>
+                {description.length}/5 min characters
+              </span>
+            </div>
           </div>
 
           {/* Optional File Attachment UI */}

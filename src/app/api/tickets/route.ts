@@ -8,7 +8,7 @@ import { z } from "zod";
 
 const CreateTicketSchema = z.object({
   subject: z.string().min(3, "Subject must be at least 3 characters").max(200),
-  description: z.string().min(10, "Please provide more details (at least 10 characters)"),
+  description: z.string().min(5, "Please provide more details (at least 5 characters)"),
   bookId: z.string().nullable().optional(),
   attachmentFileName: z.string().nullable().optional()
 });
@@ -148,7 +148,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
+      const firstMessage = error.issues[0]?.message || "Validation failed";
+      return NextResponse.json({ error: firstMessage, details: error.issues }, { status: 400 });
     }
     console.error("Create ticket error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
